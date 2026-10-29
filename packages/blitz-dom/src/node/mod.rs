@@ -7,6 +7,8 @@ mod element;
 mod node;
 pub(crate) mod scrollbar;
 mod serialize;
+#[cfg(feature = "svg")]
+mod svg_source;
 mod stylo_data;
 #[cfg(feature = "svg")]
 mod svg;
@@ -27,4 +29,6 @@ pub use scrollbar::{ScrollbarColor, ScrollbarRef, ScrollbarWidth};
 pub use stylo_data::ComputedStyleRef;
 #[cfg(feature = "svg")]
 pub use svg::{SvgImageData, SvgIntrinsicDimensions};
-pub use text::{GeneratedTextInputEvent, TextBrush, TextInputData, TextLayout};
+#[cfg(feature = "svg")]
+pub(crate) use svg_source::SVG_PRESENTATION_PROPERTIES;
+pub use text::{GeneratedTextInputEvent, PlaceholderText, TextBrush, TextInputData, TextLayout};

@@ -427,7 +427,19 @@ pub(crate) fn style(
     let font_weight = self::font_weight(font_styles.font_weight);
     let font_style = self::font_style(font_styles.font_style);
     let font_width = self::font_width(font_styles.font_width);
-    let font_variations = self::font_variations(&font_styles.font_variation_settings);
+    let mut font_variations = self::font_variations(&font_styles.font_variation_settings);
+    // `font-optical-sizing: auto`, the initial value: a font's `opsz` axis follows the font
+    // size in CSS px, as browsers do, unless `font-variation-settings` sets it.
+    let opsz = parley::Tag::from_bytes(*b"opsz");
+    if !font_variations
+        .iter()
+        .any(|variation| variation.tag == opsz)
+    {
+        font_variations.push(parley::FontVariation {
+            tag: opsz,
+            value: font_size,
+        });
+    }
     let font_features = self::font_features(font_styles);
 
     // Convert font family

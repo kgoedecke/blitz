@@ -221,6 +221,9 @@ pub struct BaseDocument {
     pub(crate) tx: Sender<DocumentEvent>,
     // rx will always be Some, except temporarily while processing events
     pub(crate) rx: Option<Receiver<DocumentEvent>>,
+    /// An event taken off `rx` by [`Self::has_pending_events`], handled first by
+    /// [`Self::handle_messages`].
+    peeked_event: RefCell<Option<DocumentEvent>>,
 
     /// A slotmap-backed tree of nodes
     ///
@@ -248,6 +251,10 @@ pub struct BaseDocument {
     pub(crate) thread_font_contexts: ThreadLocal<RefCell<Box<FontContext>>>,
     /// A Parley layout context
     pub(crate) layout_ctx: parley::LayoutContext<TextBrush>,
+    /// The font database for inline SVG text: the system fonts plus this document's
+    /// `@font-face` fonts. `None` until a web font loads.
+    #[cfg(feature = "svg")]
+    pub(crate) svg_fontdb: Option<Arc<usvg::fontdb::Database>>,
 
     /// The real (non-anonymous) node which is currently hovered (if any).
     /// This is never a layout-generated (anonymous) node, so it remains valid
@@ -437,6 +444,7 @@ impl BaseDocument {
             id,
             tx,
             rx: Some(rx),
+            peeked_event: RefCell::new(None),
 
             guard,
             nodes,
@@ -460,6 +468,8 @@ impl BaseDocument {
             #[cfg(feature = "parallel-construct")]
             thread_font_contexts: ThreadLocal::new(),
             layout_ctx: parley::LayoutContext::new(),
+            #[cfg(feature = "svg")]
+            svg_fontdb: None,
 
             hover_node_id: None,
             hover_hit_node_id: None,
@@ -1224,7 +1234,23 @@ impl BaseDocument {
         }
     }
 
+    /// Whether a resource has finished loading but not been applied yet: it is applied by the
+    /// next [`Self::handle_messages`] (which [`Self::resolve`] runs), and may start more fetches
+    /// (a stylesheet's fonts and images). A loading indicator that only counts requests in flight
+    /// reads idle in that gap.
+    pub fn has_pending_events(&self) -> bool {
+        let mut peeked = self.peeked_event.borrow_mut();
+        if peeked.is_none() {
+            *peeked = self.rx.as_ref().and_then(|rx| rx.try_recv().ok());
+        }
+        peeked.is_some()
+    }
+
     pub fn handle_messages(&mut self) {
+        if let Some(msg) = self.peeked_event.get_mut().take() {
+            self.handle_message(msg);
+        }
+
         // Remove event Reciever from the Document so that we can process events
         // without holding a borrow to the Document
         let rx = self.rx.take().unwrap();
@@ -1317,6 +1343,8 @@ impl BaseDocument {
                 self.apply_iframe_html(node_id, res.request_id, res.resolved_url, &html);
             }
             Resource::Font(bytes, overrides) => {
+                #[cfg(feature = "svg")]
+                self.register_svg_font(bytes.clone(), &overrides);
                 let font = Blob::new(Arc::new(bytes));
 
                 // Build a `FontInfoOverride` from the `@font-face` descriptors
@@ -3377,6 +3405,7 @@ mod font_face_override_tests {
                     family_name: Some(String::from(ALIAS)),
                     weight: Some(800.0),
                     style: Some(parley::fontique::FontStyle::Italic),
+                    unicode_range: None,
                 },
             )),
         };

@@ -99,20 +99,6 @@ impl Node {
         self.write_outer_html_in_style(writer, SerializeOpts::html(OutputStyle::Pretty), 0);
     }
 
-    /// Serializes this `<svg>` subtree as a standalone SVG document for usvg, with
-    /// `currentColor` resolved against each element's computed `color`.
-    #[cfg(feature = "svg")]
-    pub(crate) fn svg_source(&self) -> String {
-        let mut output = String::new();
-        let opts = SerializeOpts {
-            style: OutputStyle::Normal,
-            resolve_current_color: true,
-            declare_xlink_ns: true,
-        };
-        self.write_outer_html_in_style(&mut output, opts, 0);
-        output
-    }
-
     fn write_outer_html_in_style(&self, writer: &mut String, opts: SerializeOpts, nesting: usize) {
         const INDENT: &str = "  ";
         let style = opts.style;

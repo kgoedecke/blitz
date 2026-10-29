@@ -1117,6 +1117,48 @@ impl<'a> TElement for BlitzNode<'a> {
                 }
             }
 
+            // SVG paint presentation attributes map to the properties of the
+            // same name at presentational-hint precedence, so author CSS
+            // overrides them and inheritance is computed by the cascade. The
+            // inline SVG serializer writes the computed values back for usvg.
+            #[cfg(feature = "svg")]
+            if elem.name.ns == ns!(svg)
+                && attr.name.ns == ns!()
+                && crate::node::SVG_PRESENTATION_PROPERTIES.contains(&&**name)
+            {
+                use style::properties::{
+                    PropertyId, SourcePropertyDeclaration, parse_one_declaration_into,
+                };
+                use style::stylesheets::{CssRuleType, Origin};
+                use style_traits::ParsingMode;
+
+                if let Ok(property_id) = PropertyId::parse_enabled_for_all_content(name) {
+                    // A paint server's URL is never written back, so its base URL is not used.
+                    let url_data = crate::url::DocumentUrl::default().url_extra_data();
+                    let mut source = SourcePropertyDeclaration::default();
+                    // `stroke-width="10"`: SVG attributes take unitless lengths.
+                    let mode = ParsingMode::ALLOW_UNITLESS_LENGTH
+                        | ParsingMode::ALLOW_ALL_NUMERIC_VALUES;
+                    if parse_one_declaration_into(
+                        &mut source,
+                        property_id,
+                        value,
+                        Origin::Author,
+                        &url_data,
+                        None,
+                        mode,
+                        QuirksMode::NoQuirks,
+                        CssRuleType::Style,
+                    )
+                    .is_ok()
+                    {
+                        for declaration in source.drain().declarations {
+                            push_style(declaration);
+                        }
+                    }
+                }
+            }
+
             // The `border` attribute maps to the four border widths as a
             // pixel length, plus the four border styles as `solid` -- width
             // alone would compute back to zero against the default

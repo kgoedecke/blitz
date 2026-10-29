@@ -51,6 +51,8 @@ impl From<StyloBackgroundClip> for BoxModelBox {
 
             // TODO: support BorderArea
             StyloBackgroundClip::BorderArea => Self::BorderBox,
+            // Painted through the glyphs instead (see `TextClip`); never drawn as a box.
+            StyloBackgroundClip::Text => Self::BorderBox,
         }
     }
 }
@@ -143,12 +145,19 @@ impl ElementCx<'_, '_> {
             (*get_cyclic(&bg_styles.background_clip.0, layer_count - 1)).into();
         let background_clip_path = self.box_path(background_clip);
 
+        // A background clipped to the text is painted through the glyphs (`TextClip`)
+        let clips_text = |idx: usize| {
+            *get_cyclic(&bg_styles.background_clip.0, idx) == StyloBackgroundClip::Text
+        };
+
         // Draw background color (if any)
-        self.draw_solid_bg(scene, &background_clip_path);
+        if !clips_text(layer_count - 1) {
+            self.draw_solid_bg(scene, &background_clip_path);
+        }
 
         for idx in (0..layer_count).rev() {
             let layer = ImageLayerStyles::from_background(bg_styles, image_data, idx);
-            if layer_paints_nothing(&layer) {
+            if layer_paints_nothing(&layer) || clips_text(idx) {
                 continue;
             }
             let background_clip_path = self.box_path(layer.clip);
@@ -178,7 +187,7 @@ impl ElementCx<'_, '_> {
     }
 
     /// The rect of the given CSS box model box for this element
-    fn box_rect(&self, css_box: BoxModelBox) -> Rect {
+    pub(super) fn box_rect(&self, css_box: BoxModelBox) -> Rect {
         match css_box {
             BoxModelBox::BorderBox => self.frame.border_box,
             BoxModelBox::PaddingBox => self.frame.padding_box,

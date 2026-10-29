@@ -902,8 +902,15 @@ impl ElementCx<'_, '_> {
                 );
             }
 
-            // Render text
+            // Render text. A `background-clip: text` background is laid over the box its
+            // background is positioned in, which the text's coordinates start inside of.
             let mut draw_text_context = self.context.draw_text_context.borrow_mut();
+            draw_text_context.root_text_paint =
+                crate::text::TextClip::of(&self.style).map(|clip| {
+                    let origin = *self.style.get_background().background_origin.0.first().unwrap();
+                    let rect = self.box_rect(background::BoxModelBox::from(origin));
+                    clip.paint(rect - Vec2::new(pos.x * self.scale, pos.y * self.scale), self.scale)
+                });
             crate::text::stroke_text(
                 scene,
                 text_layout.layout.lines(),
@@ -913,6 +920,7 @@ impl ElementCx<'_, '_> {
                 self.node.id,
                 &mut draw_text_context,
             );
+            draw_text_context.root_text_paint = None;
         }
     }
 

@@ -44,6 +44,9 @@ pub(crate) fn draw_inline_backgrounds<'a>(
                 continue;
             };
 
+            if TextClip::of(&styles).is_some() {
+                continue;
+            }
             let current_color = styles.clone_color();
             let bg_color = styles
                 .get_background()
@@ -143,11 +146,62 @@ struct ResolvedDecoration {
 /// consecutive runs doesn't re-resolve them.
 struct DecorationStackEntry {
     node_id: NodeId,
-    /// This node's (inherited) text colour, used for the glyphs of runs whose
-    /// innermost node is this one.
+    /// This node's (inherited) text fill colour (`-webkit-text-fill-color`, which defaults to
+    /// `color`), used for the glyphs of runs whose innermost node is this one.
     text_color: Color,
     /// The decoration this node introduces as a decorating box, if any.
     decoration: Option<ResolvedDecoration>,
+    /// The background this node shows through its text (`background-clip: text`).
+    text_clip: Option<TextClip>,
+}
+
+/// A `background-clip: text` background: its topmost gradient layer, else its colour.
+#[derive(Clone)]
+pub(crate) struct TextClip {
+    gradient: Option<Box<style::values::computed::Gradient>>,
+    color: Color,
+    current_color: style::color::AbsoluteColor,
+}
+
+impl TextClip {
+    /// The background of `styles` if it is clipped to the text, else `None`.
+    pub(crate) fn of(styles: &style::properties::ComputedValues) -> Option<Self> {
+        use style::values::computed::BackgroundClip;
+        use style::values::generics::image::GenericImage;
+        let background = styles.get_background();
+        if !background.background_clip.0.iter().any(|clip| *clip == BackgroundClip::Text) {
+            return None;
+        }
+        let current_color = styles.clone_color();
+        Some(Self {
+            gradient: background.background_image.0.iter().find_map(|image| match image {
+                GenericImage::Gradient(gradient) => Some(gradient.clone()),
+                _ => None,
+            }),
+            color: background
+                .background_color
+                .resolve_to_absolute(&current_color)
+                .as_color_color(),
+            current_color,
+        })
+    }
+
+    /// The paint for glyphs laid over `rect` (in the glyphs' coordinate space).
+    pub(crate) fn paint(&self, rect: Rect, scale: f64) -> anyrender::Paint {
+        match &self.gradient {
+            Some(gradient) => {
+                let (gradient, _) = crate::gradient::to_peniko_gradient(
+                    gradient,
+                    rect,
+                    rect,
+                    scale,
+                    &self.current_color,
+                );
+                anyrender::Paint::Gradient(gradient)
+            }
+            None => anyrender::Paint::Solid(self.color),
+        }
+    }
 }
 
 /// Resolve the cached style values for a single node into a [`DecorationStackEntry`].
@@ -157,12 +211,16 @@ fn resolve_decoration_entry(doc: &BaseDocument, node_id: NodeId) -> DecorationSt
             node_id,
             text_color: Color::BLACK,
             decoration: None,
+            text_clip: None,
         };
     };
 
     let itext = styles.get_inherited_text();
     let text = styles.get_text();
-    let text_color = itext.color.as_color_color();
+    let text_color = itext
+        ._webkit_text_fill_color
+        .resolve_to_absolute(&itext.color)
+        .as_color_color();
 
     let drawn_lines = TextDecorationLine::UNDERLINE
         | TextDecorationLine::OVERLINE
@@ -197,6 +255,7 @@ fn resolve_decoration_entry(doc: &BaseDocument, node_id: NodeId) -> DecorationSt
         node_id,
         text_color,
         decoration,
+        text_clip: TextClip::of(&styles),
     }
 }
 
@@ -246,6 +305,8 @@ pub(crate) struct DrawTextContext {
     win_ascent_ratios: WinAscentCache,
     /// Paint every glyph in this colour instead of its node's (an input's placeholder).
     pub(crate) color_override: Option<Color>,
+    /// The inline root's `background-clip: text` paint, laid over its background box.
+    pub(crate) root_text_paint: Option<anyrender::Paint>,
 }
 
 /// Resolve the CSS `text-decoration-thickness` to a device-pixel size.
@@ -570,6 +631,7 @@ pub(crate) fn stroke_text<'a>(
         deco_boxes,
         win_ascent_ratios,
         color_override,
+        root_text_paint,
     } = context;
     stack.clear();
     path_scratch.clear();
@@ -633,6 +695,30 @@ pub(crate) fn stroke_text<'a>(
                     .or_else(|| stack.last().map(|e| e.text_color))
                     .unwrap_or(Color::BLACK);
 
+                // Transparent text over a `background-clip: text` background shows that
+                // background through the glyphs: paint them with it. The nearest clipping
+                // ancestor wins; the inline root's is laid over its own background box,
+                // an inline element's over this run.
+                let clip_paint = (color_override.is_none() && text_color.components[3] == 0.0)
+                    .then(|| stack.iter().rev().find(|entry| entry.text_clip.is_some()))
+                    .flatten()
+                    .and_then(|entry| {
+                        if entry.node_id == inline_root_id {
+                            if let Some(paint) = root_text_paint.as_ref() {
+                                return Some(paint.clone());
+                            }
+                        }
+                        let baseline = glyph_run.baseline() as f64;
+                        let x = glyph_run.offset() as f64;
+                        let rect = Rect::new(
+                            x,
+                            baseline - metrics.ascent as f64,
+                            x + glyph_run.advance() as f64,
+                            baseline + metrics.descent as f64,
+                        );
+                        entry.text_clip.as_ref().map(|clip| clip.paint(rect, scale))
+                    });
+
                 let embolden = if FONT_EMBOLDEN_ENABLED {
                     let fs = font_size as f64 / scale;
                     kurbo::Vec2::new((0.015125 * fs).min(0.3), (0.0121 * fs).min(0.3))
@@ -648,7 +734,7 @@ pub(crate) fn stroke_text<'a>(
                     normalized_coords,
                     embolden,
                     Fill::NonZero,
-                    &anyrender::Paint::from(text_color),
+                    &clip_paint.unwrap_or_else(|| anyrender::Paint::from(text_color)),
                     1.0, // alpha
                     transform,
                     glyph_xform,

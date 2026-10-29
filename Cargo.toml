@@ -319,3 +319,19 @@ rustc-hash = { workspace = true }
 # [patch."https://github.com/linebender/parley"]
 # parley = { path = "../parley/parley" }
 # fontique = { path = "../parley/fontique" }
+
+# Stylo from the `doop` branch of kgoedecke/stylo: 0.22.0 plus `background-clip: text` and
+# `-webkit-text-fill-color` in Servo builds, which blitz-paint uses. Every crate published
+# from that commit is patched together so there is one copy of each.
+[patch.crates-io]
+stylo = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+stylo_traits = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+stylo_atoms = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+stylo_dom = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+stylo_static_prefs = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+stylo_derive = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+stylo_malloc_size_of = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+selectors = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+servo_arc = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+to_shmem = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }
+to_shmem_derive = { git = "https://github.com/kgoedecke/stylo", rev = "f31ec9fb0fa83b3b79cfce08016f3cb8cc777c70" }

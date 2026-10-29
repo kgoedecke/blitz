@@ -504,12 +504,14 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
             None,
             None,
             |scene| {
+                // If the element has a CSS `mask`, then push an isolation layer for the
+                // masked content. The mask is applied when the layer is popped below. The
+                // outline and outer shadow are masked too: they lie outside the mask
+                // painting area (`mask-clip: border-box`), so browsers do not show them.
+                let mask_layer_pushed = cx.maybe_push_css_mask_layer(scene);
+
                 cx.draw_outline(scene);
                 cx.draw_outset_box_shadow(scene);
-
-                // If the element has a CSS `mask`, then push an isolation layer for the
-                // masked content. The mask is applied when the layer is popped below.
-                let mask_layer_pushed = cx.maybe_push_css_mask_layer(scene);
                 // `cx.transform` is mutated to apply scroll offsets while drawing content.
                 // Save it so that the mask can be drawn untransformed by scroll offsets.
                 let unscrolled_transform = cx.transform;

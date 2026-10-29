@@ -4,6 +4,8 @@ mod box_shadow;
 mod clip_path;
 mod form_controls;
 mod mask;
+#[cfg(feature = "svg")]
+mod svg_background;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -109,6 +111,11 @@ pub struct BlitzDomPainter<'dom, 'a> {
     pub(crate) scale: f64,
     pub(crate) width: u32,
     pub(crate) height: u32,
+    /// The document's own viewport in device pixels. Equal to the output size for a
+    /// full paint; for a tile it is the whole frame, which `background-attachment:
+    /// fixed` sizes against.
+    pub(crate) viewport_width: u32,
+    pub(crate) viewport_height: u32,
     pub(crate) initial_x: f64,
     pub(crate) initial_y: f64,
     /// The id of the document's root element (cached to avoid re-resolving it for every element)
@@ -147,12 +154,15 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
 
         let layer_manager = LayerManager::default();
         let root_element_id = dom.try_root_element().map(|el| el.id);
+        let (viewport_width, viewport_height) = dom.viewport().window_size;
 
         Self {
             dom,
             scale,
             width,
             height,
+            viewport_width,
+            viewport_height,
             initial_x,
             initial_y,
             root_element_id,
@@ -230,7 +240,15 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
         // The root clip rectangle is the viewport (in screen coordinates, with the
         // initial offset already subtracted). Elements outside of this are culled, and
         // scrollports narrow this rectangle further for their descendants.
-        let viewport_clip_rect = Rect::new(0.0, 0.0, self.width as f64, self.height as f64);
+        // Culling happens in content coordinates (the initial offset is removed again
+        // in `screen_transform`), so the visible window is the output rectangle shifted
+        // back by that offset. A negative offset paints a tile of a larger document.
+        let viewport_clip_rect = Rect::new(
+            -self.initial_x,
+            -self.initial_y,
+            self.width as f64 - self.initial_x,
+            self.height as f64 - self.initial_y,
+        );
 
         self.render_element(
             scene,
@@ -473,10 +491,10 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
             None,
         );
 
-        cx.draw_outline(scene);
-        cx.draw_outset_box_shadow(scene);
-
-        // clip-path clip ayer
+        // clip-path clip layer. It clips the whole element, its outline and outer shadow
+        // included, so both are drawn inside it: otherwise a shadow used as a full-bleed
+        // background (`box-shadow: 0 0 0 100vmax …; clip-path: inset(0 -100vmax)`) floods
+        // the frame and paints over everything before it.
         self.layer_manager.maybe_with_layer(
             scene,
             has_clip_path,
@@ -486,6 +504,9 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
             None,
             None,
             |scene| {
+                cx.draw_outline(scene);
+                cx.draw_outset_box_shadow(scene);
+
                 // If the element has a CSS `mask`, then push an isolation layer for the
                 // masked content. The mask is applied when the layer is popped below.
                 let mask_layer_pushed = cx.maybe_push_css_mask_layer(scene);
@@ -493,8 +514,8 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                 // Save it so that the mask can be drawn untransformed by scroll offsets.
                 let unscrolled_transform = cx.transform;
 
-                let filter = convert_filters(&effects.filter.0).map(Arc::new);
-                let backdrop_filter = convert_filters(&effects.backdrop_filter.0).map(Arc::new);
+                let filter = convert_filters(&effects.filter.0, cx.scale).map(Arc::new);
+                let backdrop_filter = convert_filters(&effects.backdrop_filter.0, cx.scale).map(Arc::new);
 
                 // Adjust effect layer clip by filter expansion area
                 //
@@ -510,6 +531,13 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                     .unwrap_or(Rect::ZERO);
 
                 let mut effect_layer_clip = cx.frame.border_box_path().bounding_box();
+                if !should_clip {
+                    // `overflow: visible`: descendants may paint outside the border box, and a
+                    // browser does not clip an opacity or filter layer to the box. The node's
+                    // scrollable overflow is in this same local, scaled space and includes
+                    // out-of-flow children.
+                    effect_layer_clip = effect_layer_clip.union(*node.scrollable_overflow());
+                }
                 effect_layer_clip.x0 += filter_expansion_area.x0;
                 effect_layer_clip.y0 += filter_expansion_area.y0;
                 effect_layer_clip.x1 += filter_expansion_area.x1;

@@ -4,19 +4,23 @@ pub(crate) use style::computed_values::filter::single_value::T as StyloFilter;
 
 use anyrender::filters::{Filter, FilterEffect};
 
-pub(crate) fn convert_filters(filters: &[StyloFilter]) -> Option<Filter> {
+/// `scale` is the painter's CSS px → device px factor: geometry handed to the
+/// painter is already scaled, so filter lengths (blur radii, shadow offsets)
+/// must be scaled the same way or they render in device pixels.
+pub(crate) fn convert_filters(filters: &[StyloFilter], scale: f64) -> Option<Filter> {
     if filters.is_empty() {
         return None;
     }
 
     Some(Filter::linear_list(
-        filters.iter().filter_map(convert_single_filter),
+        filters.iter().filter_map(|f| convert_single_filter(f, scale)),
     ))
 }
 
-pub(crate) fn convert_single_filter(filter: &StyloFilter) -> Option<FilterEffect> {
+pub(crate) fn convert_single_filter(filter: &StyloFilter, scale: f64) -> Option<FilterEffect> {
+    let px = |v: f32| (v as f64 * scale) as f32;
     Some(match filter {
-        StyloFilter::Blur(radius) => FilterEffect::blur(radius.px()),
+        StyloFilter::Blur(radius) => FilterEffect::blur(px(radius.px())),
         StyloFilter::Brightness(amount) => FilterEffect::brightness(amount.0),
         StyloFilter::Contrast(amount) => FilterEffect::contrast(amount.0),
         StyloFilter::Grayscale(amount) => FilterEffect::grayscale(amount.0),
@@ -26,9 +30,9 @@ pub(crate) fn convert_single_filter(filter: &StyloFilter) -> Option<FilterEffect
         StyloFilter::Saturate(amount) => FilterEffect::saturate(amount.0),
         StyloFilter::Sepia(amount) => FilterEffect::sepia(amount.0),
         StyloFilter::DropShadow(shadow) => FilterEffect::drop_shadow(
-            shadow.horizontal.px(),
-            shadow.vertical.px(),
-            shadow.blur.px(),
+            px(shadow.horizontal.px()),
+            px(shadow.vertical.px()),
+            px(shadow.blur.px()),
             // TODO: pass in correct currentColor
             shadow
                 .color

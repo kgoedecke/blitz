@@ -40,6 +40,26 @@ type CustomWidgetSceneMap = HashMap<(usize, NodeId), Scene>;
 /// The implementation of [`PaintScene`] is responsible for handling the commands that are pushed into it.
 /// Generally this will involve executing them to draw a rasterized image/texture. But in some cases it may choose to
 /// transform them to a vector format (e.g. SVG/PDF) or serialize them in raw form for later use.
+/// Paint the `width`×`height` device-pixel window whose top-left corner sits at
+/// (`x`, `y`) device pixels into the document: a tile of a larger document.
+pub fn paint_scene_region(
+    scene: &mut impl PaintScene,
+    doc: &mut BaseDocument,
+    scale: f64,
+    width: u32,
+    height: u32,
+    x: f64,
+    y: f64,
+) {
+    #[allow(unused_mut)]
+    let mut custom_widget_scenes: CustomWidgetSceneMap = HashMap::new();
+    #[cfg(feature = "custom-widget")]
+    build_custom_widget_scenes(&mut custom_widget_scenes, doc, scene, scale);
+
+    let generator = BlitzDomPainter::new(doc, scale, width, height, -x, -y, &custom_widget_scenes);
+    generator.paint_scene(scene);
+}
+
 pub fn paint_scene(
     scene: &mut impl PaintScene,
     doc: &mut BaseDocument,

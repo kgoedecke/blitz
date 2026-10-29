@@ -515,7 +515,8 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                 let unscrolled_transform = cx.transform;
 
                 let filter = convert_filters(&effects.filter.0, cx.scale).map(Arc::new);
-                let backdrop_filter = convert_filters(&effects.backdrop_filter.0, cx.scale).map(Arc::new);
+                let backdrop_filter =
+                    convert_filters(&effects.backdrop_filter.0, cx.scale).map(Arc::new);
 
                 // Adjust effect layer clip by filter expansion area
                 //

@@ -7,11 +7,11 @@ mod element;
 mod node;
 pub(crate) mod scrollbar;
 mod serialize;
-#[cfg(feature = "svg")]
-mod svg_source;
 mod stylo_data;
 #[cfg(feature = "svg")]
 mod svg;
+#[cfg(feature = "svg")]
+mod svg_source;
 mod text;
 
 pub use attributes::{Attribute, Attributes};

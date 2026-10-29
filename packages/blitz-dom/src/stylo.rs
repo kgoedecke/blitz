@@ -1124,7 +1124,8 @@ impl<'a> TElement for BlitzNode<'a> {
             #[cfg(feature = "svg")]
             if elem.name.ns == ns!(svg)
                 && attr.name.ns == ns!()
-                && crate::node::SVG_PRESENTATION_PROPERTIES.contains(&&**name)
+                && (crate::node::SVG_PRESENTATION_PROPERTIES.contains(&&**name)
+                    || *name == local_name!("opacity"))
             {
                 use style::properties::{
                     PropertyId, SourcePropertyDeclaration, parse_one_declaration_into,
@@ -1137,8 +1138,8 @@ impl<'a> TElement for BlitzNode<'a> {
                     let url_data = crate::url::DocumentUrl::default().url_extra_data();
                     let mut source = SourcePropertyDeclaration::default();
                     // `stroke-width="10"`: SVG attributes take unitless lengths.
-                    let mode = ParsingMode::ALLOW_UNITLESS_LENGTH
-                        | ParsingMode::ALLOW_ALL_NUMERIC_VALUES;
+                    let mode =
+                        ParsingMode::ALLOW_UNITLESS_LENGTH | ParsingMode::ALLOW_ALL_NUMERIC_VALUES;
                     if parse_one_declaration_into(
                         &mut source,
                         property_id,

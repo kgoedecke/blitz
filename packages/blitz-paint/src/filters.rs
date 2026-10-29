@@ -13,7 +13,9 @@ pub(crate) fn convert_filters(filters: &[StyloFilter], scale: f64) -> Option<Fil
     }
 
     Some(Filter::linear_list(
-        filters.iter().filter_map(|f| convert_single_filter(f, scale)),
+        filters
+            .iter()
+            .filter_map(|f| convert_single_filter(f, scale)),
     ))
 }
 

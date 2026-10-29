@@ -158,6 +158,10 @@ impl Node {
                     if plain && paint.iter().any(|(property, _)| *property == name) {
                         continue;
                     }
+                    // The computed opacity is written below (or painted with the root's box).
+                    if plain && attr.name.local == local_name!("opacity") {
+                        continue;
+                    }
                     if plain && attr.name.local == local_name!("id") {
                         defined.insert(attr.value.clone());
                     }
@@ -201,6 +205,11 @@ impl Node {
                     match attrs.iter_mut().find(|(name, _)| name == "transform") {
                         Some((_, transform)) => *transform = format!("{transform} {translate}"),
                         None => attrs.push(("transform".to_string(), translate)),
+                    }
+                }
+                for (_, value) in &paint {
+                    if let Some(value) = value {
+                        collect_references(value, referenced);
                     }
                 }
                 attrs.extend(
@@ -334,8 +343,8 @@ fn usvg_inline_style(style: &str) -> Option<String> {
 
 /// Computed paint and font properties for the presentation attributes that replace the authored ones.
 /// The value is `None` where it equals the parent's, since usvg inherits it too (the root
-/// writes all of them). A paint usvg cannot be given (a paint server or a context value) is
-/// not listed, so the authored attribute stays in place.
+/// writes all of them). A paint usvg cannot be given (a context value, or a paint server in
+/// another document) is not listed, so the authored attribute stays in place.
 fn computed_paint(
     style: &ComputedValues,
     parent: Option<&ComputedValues>,
@@ -349,6 +358,13 @@ fn computed_paint(
             SVGPaintKind::Color(color) => {
                 Some(color.resolve_to_absolute(&current_color).to_css_string())
             }
+            // A gradient or pattern in this document; its definition is copied into the
+            // output by `svg_source` if it lives in another `<svg>`.
+            SVGPaintKind::PaintServer(url) => url
+                .url()
+                .and_then(|url| url.fragment())
+                .filter(|id| !id.is_empty())
+                .map(|id| format!("url(#{id})")),
             _ => None,
         };
         [

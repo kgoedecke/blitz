@@ -59,7 +59,9 @@ impl ElementCx<'_, '_> {
                         });
 
                         let spread = shadow.spread.px() as f64 * self.scale;
-                        let blur = shadow.base.blur.px() as f64;
+                        // The CSS blur radius is twice the Gaussian's standard deviation, which
+                        // is what `draw_box_shadow` takes, and it is a length in CSS pixels.
+                        let blur = shadow.base.blur.px() as f64 * self.scale / 2.0;
 
                         // Without blur or spread the shadow is exactly the element's shape,
                         // so fill the border box path directly (preserving individual radii)
@@ -147,7 +149,7 @@ impl ElementCx<'_, '_> {
                 hole,
                 Color::WHITE,
                 radius,
-                shadow.base.blur.px() as f64 * self.scale,
+                shadow.base.blur.px() as f64 * self.scale / 2.0,
             );
 
             scene.pop_layer();

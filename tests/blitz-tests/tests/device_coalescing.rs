@@ -1,4 +1,4 @@
-//! Device changes (viewport resizes, zoom, color-scheme, media-type) are
+//! Device changes (viewport resizes, zoom, color-scheme, reduced motion, media-type) are
 //! coalesced: they accumulate on the document and are applied to the stylist
 //! as a single device rebuild at the start of the next resolve.
 
@@ -16,8 +16,12 @@ const HTML: &str = r#"<!DOCTYPE html>
     @media (min-width: 850px) {
         #mq { width: 30px; }
     }
+    #motion { width: 10px; }
+    @media (prefers-reduced-motion: reduce) {
+        #motion { width: 20px; }
+    }
 </style></head>
-<body><div id="static"></div><div id="vw"></div><div id="mq"></div></body></html>
+<body><div id="static"></div><div id="vw"></div><div id="mq"></div><div id="motion"></div></body></html>
 "#;
 
 fn make_doc(width: u32, height: u32) -> HtmlDocument {
@@ -107,4 +111,19 @@ fn color_scheme_change_recascades_styles() {
     assert_ne!(style_ptr(&doc, "#static"), static_style);
     // Layout is unaffected.
     assert_eq!(used_width(&doc, "#static"), 100.0);
+}
+
+#[test]
+fn reduced_motion_is_off_until_the_viewport_asks_for_it() {
+    let mut doc = make_doc(800, 600);
+    doc.resolve(0.0);
+    assert_eq!(used_width(&doc, "#motion"), 10.0);
+
+    doc.viewport_mut().reduced_motion = true;
+    doc.resolve(0.0);
+    assert_eq!(used_width(&doc, "#motion"), 20.0);
+
+    doc.viewport_mut().reduced_motion = false;
+    doc.resolve(0.0);
+    assert_eq!(used_width(&doc, "#motion"), 10.0);
 }

@@ -325,14 +325,14 @@ rustc-hash = { workspace = true }
 # (`Viewport::reduced_motion`). Every crate published from that commit is patched together so
 # there is one copy of each.
 [patch.crates-io]
-stylo = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-stylo_traits = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-stylo_atoms = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-stylo_dom = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-stylo_static_prefs = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-stylo_derive = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-stylo_malloc_size_of = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-selectors = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-servo_arc = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-to_shmem = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
-to_shmem_derive = { git = "https://github.com/kgoedecke/stylo", rev = "3faf66963a10a54156cbf5108abee77900685d62" }
+stylo = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+stylo_traits = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+stylo_atoms = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+stylo_dom = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+stylo_static_prefs = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+stylo_derive = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+stylo_malloc_size_of = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+selectors = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+servo_arc = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+to_shmem = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+to_shmem_derive = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }

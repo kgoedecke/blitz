@@ -1,6 +1,6 @@
 //! Management of the Stylo [`Device`]: constructing it from shell state and
-//! coalescing changes to it (viewport resizes, zoom, color-scheme and media
-//! type changes) so that the stylist device is rebuilt at most once per
+//! coalescing changes to it (viewport resizes, zoom, color-scheme, reduced-motion
+//! and media type changes) so that the stylist device is rebuilt at most once per
 //! [`resolve`](crate::BaseDocument::resolve), no matter how many changes
 //! occurred since the last resolve.
 
@@ -38,6 +38,8 @@ bitflags! {
         const COLOR_SCHEME = 0b0000_0100;
         /// The media type (e.g. screen/print) changed.
         const MEDIA_TYPE = 0b0000_1000;
+        /// The `prefers-reduced-motion` preference changed.
+        const REDUCED_MOTION = 0b0001_0000;
     }
 }
 
@@ -55,6 +57,9 @@ impl DeviceChanges {
         if old.color_scheme != new.color_scheme {
             changes |= Self::COLOR_SCHEME;
         }
+        if old.reduced_motion != new.reduced_motion {
+            changes |= Self::REDUCED_MOTION;
+        }
         changes
     }
 }
@@ -69,7 +74,7 @@ pub(crate) fn make_device(
     let device_size = euclid::Size2D::new(width, height) * viewport.scale();
     let device_pixel_ratio = euclid::Scale::new(viewport.scale());
 
-    Device::new(
+    let mut device = Device::new(
         media_type,
         QuirksMode::NoQuirks,
         viewport_size,
@@ -83,5 +88,7 @@ pub(crate) fn make_device(
         },
         PointerCapabilities::default(),
         PointerCapabilities::default(),
-    )
+    );
+    device.set_prefers_reduced_motion(viewport.reduced_motion);
+    device
 }

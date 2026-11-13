@@ -148,6 +148,7 @@ impl BaseDocument {
                 sub_viewport.hidpi_scale = self.viewport.hidpi_scale;
                 sub_viewport.zoom = self.viewport.zoom;
                 sub_viewport.color_scheme = self.viewport.color_scheme;
+                sub_viewport.reduced_motion = self.viewport.reduced_motion;
 
                 let viewport_scale = self.viewport.scale();
                 sub_viewport.window_size = (

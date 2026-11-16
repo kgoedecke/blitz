@@ -124,9 +124,16 @@ impl crate::document::BaseDocument {
         }
         drop(sets);
 
-        // Build the style context used by the style traversal
+        // Build the style context used by the style traversal. A pass that only
+        // follows a scale change recomputes device-pixel-snapped lengths; those
+        // are not style changes, so it must not start CSS transitions.
+        let traversal_flags = if std::mem::take(&mut self.restyle_for_scale_change) {
+            TraversalFlags::DeviceChangeOnly
+        } else {
+            TraversalFlags::empty()
+        };
         let context = SharedStyleContext {
-            traversal_flags: TraversalFlags::empty(),
+            traversal_flags,
             stylist: &self.stylist,
             options: GLOBAL_STYLE_DATA.options.clone(),
             guards,

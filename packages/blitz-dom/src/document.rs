@@ -207,6 +207,9 @@ pub struct BaseDocument {
     /// last [`resolve`](Self::resolve), to be applied (coalesced into a single
     /// device rebuild) at the start of the next resolve.
     pub(crate) pending_device_changes: DeviceChanges,
+    /// The device scale changed since the last style traversal. That traversal
+    /// recomputes device-pixel-snapped lengths, which must not start transitions.
+    pub(crate) restyle_for_scale_change: bool,
     /// Strategy for Stylo's style traversal during `resolve`.
     pub(crate) style_threading: StyleThreading,
     /// Whether incremental layout is enabled for this document. When disabled,
@@ -456,6 +459,7 @@ impl BaseDocument {
             viewport,
             media_type,
             pending_device_changes: DeviceChanges::empty(),
+            restyle_for_scale_change: false,
             style_threading: config.style_threading,
             incremental_layout: config.incremental.unwrap_or(true),
             subdocument_depth: config.subdocument_depth,
@@ -2091,6 +2095,7 @@ impl BaseDocument {
         // Text is shaped at a specific scale factor, so cached inline layouts
         // must be invalidated when the scale changes.
         if changes.contains(DeviceChanges::SCALE) {
+            self.restyle_for_scale_change = true;
             self.invalidate_inline_contexts();
         }
 

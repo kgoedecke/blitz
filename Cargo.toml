@@ -322,17 +322,18 @@ rustc-hash = { workspace = true }
 
 # Stylo from the `doop` branch of kgoedecke/stylo: 0.22.0 plus `background-clip: text` and
 # `-webkit-text-fill-color` in Servo builds, which blitz-paint uses, and `prefers-reduced-motion`
-# (`Viewport::reduced_motion`). Every crate published from that commit is patched together so
+# (`Viewport::reduced_motion`), and `TraversalFlags::DeviceChangeOnly`, which keeps a scale change
+# from starting CSS transitions. Every crate published from that commit is patched together so
 # there is one copy of each.
 [patch.crates-io]
-stylo = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-stylo_traits = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-stylo_atoms = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-stylo_dom = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-stylo_static_prefs = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-stylo_derive = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-stylo_malloc_size_of = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-selectors = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-servo_arc = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-to_shmem = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
-to_shmem_derive = { git = "https://github.com/kgoedecke/stylo", rev = "f247bcfd8e380832e02c9c2b69d83bd5ee59bb43" }
+stylo = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+stylo_traits = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+stylo_atoms = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+stylo_dom = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+stylo_static_prefs = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+stylo_derive = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+stylo_malloc_size_of = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+selectors = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+servo_arc = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+to_shmem = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
+to_shmem_derive = { git = "https://github.com/kgoedecke/stylo", rev = "39c0595f1a3c0ecac30f045bc440ee09e2d46a2a" }
